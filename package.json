@@ -1,0 +1,36 @@
+{
+  "name": "dgk-gpt",
+  "version": "0.1.0",
+  "description": "Codex CLI skills, AGENTS rules, MCP defaults, and safe installer for reusable team setup",
+  "bin": {
+    "dgk-gpt": "bin/dgk-gpt.js"
+  },
+  "type": "module",
+  "files": [
+    "assets/",
+    "bin/",
+    "lib/",
+    "skills/",
+    "templates/",
+    "install.sh",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "codex",
+    "openai-codex",
+    "agent-skills",
+    "workflow",
+    "mcp",
+    "cli"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dgk-dev/dgk-gpt.git"
+  },
+  "author": "dgk-dev",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

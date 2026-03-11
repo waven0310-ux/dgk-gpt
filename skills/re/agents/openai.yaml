@@ -1,0 +1,4 @@
+interface:
+  display_name: "re"
+  short_description: "Research-first implementation flow"
+  default_prompt: "Use a research-first workflow: inspect the codebase, gather official docs and current sources, compare options only when there is a real tradeoff, then implement and verify."

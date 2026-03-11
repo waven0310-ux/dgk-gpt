@@ -1,0 +1,6 @@
+interface:
+  display_name: "cp"
+  short_description: "Run local checks, then commit and push"
+  default_prompt: "Use $cp to run the relevant local verification for the intended changes, stage files explicitly, commit on the current branch, and push. Do not include unrelated changes or secrets."
+policy:
+  allow_implicit_invocation: false
