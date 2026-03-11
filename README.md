@@ -14,7 +14,13 @@ It does **not** blindly overwrite your full Codex config, and it keeps a backup 
 ## Install
 
 ```bash
-npx dgk-gpt
+npx dgk-gpt@latest
+```
+
+Or install it globally:
+
+```bash
+npm install -g dgk-gpt
 ```
 
 For a preview without changing files:
@@ -151,6 +157,22 @@ npm install -g glm-review
 - consistent AGENTS guidance
 - consistent profiles and MCP defaults
 - safe installer behavior for people who already have local state
+
+## Release Notes
+
+Useful local release checks:
+
+```bash
+npm test
+npm run pack:dry-run
+npm run smoke:dry-run
+```
+
+If the package name is still free and you are logged into npm, publish with:
+
+```bash
+npm publish
+```
 
 ## License
 

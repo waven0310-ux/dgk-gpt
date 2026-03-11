@@ -6,6 +6,11 @@
     "dgk-gpt": "bin/dgk-gpt.js"
   },
   "type": "module",
+  "scripts": {
+    "test": "node --test tests/install.test.js",
+    "pack:dry-run": "npm pack --dry-run",
+    "smoke:dry-run": "node bin/dgk-gpt.js --dry-run --yes"
+  },
   "files": [
     "assets/",
     "bin/",
@@ -28,6 +33,10 @@
     "type": "git",
     "url": "git+https://github.com/dgk-dev/dgk-gpt.git"
   },
+  "bugs": {
+    "url": "https://github.com/dgk-dev/dgk-gpt/issues"
+  },
+  "homepage": "https://github.com/dgk-dev/dgk-gpt#readme",
   "author": "dgk-dev",
   "license": "MIT",
   "engines": {
