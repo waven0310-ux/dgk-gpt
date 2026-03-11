@@ -168,7 +168,7 @@ npm run pack:dry-run
 npm run smoke:dry-run
 ```
 
-If the package name is still free and you are logged into npm, publish with:
+After bumping the package version, publish with:
 
 ```bash
 npm publish

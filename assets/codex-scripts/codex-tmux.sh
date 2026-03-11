@@ -15,6 +15,16 @@ LOGIN_SHELL=""
 
 export PATH="$HOME/.local/bin:$HOME/.local/share/fnm/aliases/default/bin:$HOME/.local/share/pnpm:$PATH"
 
+require_tmux() {
+  if command -v tmux >/dev/null 2>&1; then
+    return 0
+  fi
+
+  echo "[cxt] tmux is required for this helper"
+  echo "[cxt] install tmux first or run codex directly"
+  exit 1
+}
+
 list_sessions() {
   tmux list-sessions -F '#{session_name}|#{session_windows}|#{?session_attached,attached,detached}|#{t:session_created}' 2>/dev/null \
     | awk -F '|' '$1 ~ /^cxt/ { printf "%-20s windows=%-3s %-8s created=%s\n", $1, $2, $3, $4 }'
@@ -37,6 +47,7 @@ resolve_login_shell() {
 if [[ $# -gt 0 ]]; then
   case "$1" in
     ls|list)
+      require_tmux
       if ! list_sessions; then
         echo "No Codex tmux session found."
       fi
@@ -62,6 +73,7 @@ if [[ $# -gt 0 ]]; then
 fi
 
 PROJECT_DIR=$(cd "$PROJECT_DIR" 2>/dev/null && pwd)
+require_tmux
 
 case "$MODE" in
   danger-cxt)
