@@ -1,99 +1,218 @@
 # dgk-gpt
 
-`dgk-gpt` is a practical Codex CLI setup for teams that want the same working defaults without clobbering each person’s existing environment.
+Codex 기본도 강합니다.
 
-It installs the parts of my current Codex setup that are portable:
+그런데 팀으로 쓰기 시작하면 금방 갈립니다.
 
-- workflow skills for research, finish mode, browser QA, design, and persistence
-- a managed block in `~/.codex/AGENTS.md`
-- safe merges into `~/.codex/config.toml`
-- helper scripts such as `cxt`'s tmux launcher and a Codex install checker
+누군가는 스킬이 없고,<br />
+누군가는 MCP가 비어 있고,<br />
+누군가는 `AGENTS.md` 규칙이 없고,<br />
+누군가는 기존 셋업이 망가질까 봐 설치를 미룹니다.
 
-It does **not** blindly overwrite your full Codex config, and it keeps a backup before updating managed files.
+`dgk-gpt`는 그걸 줄이기 위해 만든 실전 Codex 셋업입니다.
 
-## Install
+내가 실제로 쓰는 Codex 운영 방식 중에서 팀에 바로 옮겨도 되는 것만 추려서,
+기존 개인 셋업을 최대한 보존하는 설치기로 묶었습니다.
+
+한 줄로 말하면 이겁니다.
+
+> 팀 전체 Codex 작업 방식을 한 번에 맞추되, 각자 이미 쓰던 환경은 최대한 안 깨는 설치기
+
+## 팀원에게 이렇게 보내면 됩니다
+
+그냥 아래 문구 그대로 보내도 됩니다.
+
+```text
+Codex 쓰는 사람은 아래 한 줄만 실행하면 됩니다.
+
+npx dgk-gpt@latest
+
+기존 ~/.codex/config.toml, ~/.codex/AGENTS.md, 스킬 폴더를 통째로 덮어쓰지 않고
+필요한 설정만 안전하게 병합합니다.
+
+먼저 어떤 변경이 들어가는지 보고 싶으면:
+npx dgk-gpt@latest --dry-run
+```
+
+## 설치
+
+가장 간단한 방법:
 
 ```bash
 npx dgk-gpt@latest
 ```
 
-Or install it globally:
+전역 설치:
 
 ```bash
 npm install -g dgk-gpt
 ```
 
-For a preview without changing files:
+변경 예정만 먼저 보기:
 
 ```bash
 npx dgk-gpt@latest --dry-run
 ```
 
-If you already keep custom workflow skills under the older legacy path, force that mode explicitly:
+이미 예전 방식으로 `~/.codex/skills`를 쓰고 있다면 강제로 legacy 모드 지정:
 
 ```bash
 npx dgk-gpt@latest --skills-dir legacy
 ```
 
-## What It Installs
+원라인 설치:
 
-### Workflow skills
+```bash
+curl -fsSL https://raw.githubusercontent.com/dgk-dev/dgk-gpt/main/install-remote.sh | bash
+```
 
-These come from the current Codex setup and are installed into:
+직접 clone해서 설치:
 
-- `~/.agents/skills` on fresh installs
-- `~/.codex/skills` when the installer detects you already use the legacy skill root
+```bash
+git clone https://github.com/dgk-dev/dgk-gpt.git
+cd dgk-gpt
+./install.sh
+```
 
-Included workflow skills:
+## 설치하면 바로 들어가는 것
 
-- `re`
-- `cp`
-- `fd`
-- `bt`
-- `ralph`
-- `playwright-interactive`
+### 워크플로우 스킬
 
-### Review skills
+기본 워크플로우 스킬은 fresh install이면 `~/.agents/skills`에,
+이미 legacy root를 쓰고 있으면 `~/.codex/skills`에 설치됩니다.
 
-These are always installed into the official user skill path `~/.agents/skills`:
+- `/re`: 먼저 조사하고 들어가는 리서치 + 구현 모드
+- `/cp`: 이번 세션에서 건드린 파일만 안전하게 commit + push
+- `/fd`: UI/UX를 더 보기 좋게 다듬는 디자인 모드
+- `/bt`: 브라우저 QA, 재현, 시각 검증용 모드
+- `/ralph`: 중간에 끊지 않고 끝까지 밀어붙이는 마감 모드
+- `playwright-interactive`: 지속형 Playwright 디버깅용 스킬
 
-- `rr`
-- `rrr`
+### 리뷰 스킬
 
-They expect `glm-review` and `ZAI_API_KEY`, so `dgk-gpt` installs the skills but does not auto-install the review CLI.
+리뷰 스킬은 항상 공식 user skill 경로인 `~/.agents/skills`에 설치됩니다.
 
-### AGENTS and config
+- `/rr`: 무료 GLM 기반 코드 리뷰
+- `/rrr`: 더 깊게 보는 GLM-5 리뷰
 
-`dgk-gpt` manages:
+주의:
+- `dgk-gpt`는 리뷰 스킬만 설치합니다.
+- 실제 리뷰 실행에는 `glm-review`와 `ZAI_API_KEY`가 필요합니다.
+
+```bash
+npm install -g glm-review
+```
+
+### Codex 설정 병합
+
+`dgk-gpt`는 아래 두 파일을 관리합니다.
 
 - `~/.codex/AGENTS.md`
 - `~/.codex/config.toml`
 
-The installer preserves existing content and updates only:
+하지만 통째로 갈아엎지 않습니다.
 
-- its managed AGENTS block
-- the `[features]` table entries it owns
-- named profiles such as `[profiles.cxt]`
-- named MCP entries such as `[mcp_servers.context7]`
+업데이트 범위는 아래로 제한됩니다.
 
-### Helper scripts
+- `AGENTS.md` 안의 `dgk-gpt` managed block
+- `config.toml`의 `[features]`
+- `profiles.dgk-fast`, `profiles.dgk-careful`, `profiles.cxt`
+- `mcp_servers.context7`, `mcp_servers.serena`, `mcp_servers.chrome-devtools`, `mcp_servers.jina`
 
-The installer also copies:
+### 헬퍼 스크립트
+
+같이 설치되는 스크립트:
 
 - `~/.codex/scripts/codex-tmux.sh`
 - `~/.local/bin/setup-codex.sh`
 
-`codex-tmux.sh` is the `cxt` launcher for tmux-heavy flows.
+`codex-tmux.sh`는 `cxt` 류 tmux 워크플로우용 헬퍼입니다.
 
-## Managed Defaults
+## 왜 이걸 쓰는가
 
-`dgk-gpt` adds or updates these Codex profiles:
+Codex를 혼자 잠깐 쓰는 것과, 팀에서 계속 굴리는 것은 다릅니다.
+
+보통 여기서 갈립니다.
+
+- 사람마다 스킬과 규칙이 달라서 결과물이 들쭉날쭉함
+- 기존 셋업이 있는 사람은 설치기가 무서워서 통일이 안 됨
+- macOS, Intel Mac, Linux, WSL, Windows가 섞이면 설명 비용이 커짐
+- 코드 리뷰용 도구나 MCP 기본값이 사람마다 달라짐
+
+`dgk-gpt`는 이걸 줄이는 데 집중합니다.
+
+- 공통 스킬 세트
+- 공통 AGENTS 규칙
+- 공통 프로필
+- 공통 MCP 기본값
+- 기존 셋업을 보존하는 안전한 설치
+
+## 이미 셋업 있는 사람도 괜찮은 이유
+
+이 설치기는 "새로 깔기 전용"이 아니라 "이미 뭔가 쓰고 있는 사람도 붙일 수 있게" 만든 쪽입니다.
+
+보존되는 것:
+
+- 기존 `AGENTS.md` 내용은 유지되고 managed block만 넣거나 갱신됨
+- 기존 `config.toml`의 다른 섹션은 유지됨
+- 이미 `~/.codex/skills`를 쓰는 사람은 그 경로를 계속 사용함
+- 바꾸기 전 파일은 `~/.codex/backups/dgk-gpt/<timestamp>/` 아래로 백업됨
+
+즉, 그냥 덮어쓰는 설치기가 아닙니다.
+
+## 플랫폼
+
+- Apple Silicon Mac: 일반적으로 바로 사용 가능
+- Intel Mac: 일반적으로 바로 사용 가능
+- Linux: 일반적으로 바로 사용 가능
+- WSL: Windows 사용자에게 가장 추천되는 경로
+- Native Windows: 가능은 하지만 Codex CLI와 Bash/tmux 헬퍼 경험은 WSL 쪽이 더 안정적
+
+정리하면, 팀 기준 기본 권장은 이렇습니다.
+
+- macOS면 그대로 설치
+- Linux면 그대로 설치
+- Windows면 가능하면 WSL에서 설치
+
+## 설치 후 3분 체크리스트
+
+1. Codex를 재시작해서 스킬과 설정을 다시 읽게 합니다.
+2. Codex CLI가 아직 없다면 아래 스크립트를 실행합니다.
+
+```bash
+bash ~/.local/bin/setup-codex.sh
+```
+
+3. `/rr`, `/rrr`를 쓸 사람은 `glm-review`를 설치합니다.
+
+```bash
+npm install -g glm-review
+```
+
+4. Jina MCP를 쓸 사람은 `JINA_API_KEY`를 export하고 `[mcp_servers.jina]`를 `enabled = true`로 켭니다.
+5. `cxt` 같은 tmux 기반 흐름을 쓸 사람은 `tmux`가 설치되어 있어야 합니다.
+
+## 옵션
+
+자주 쓰는 옵션:
+
+```bash
+npx dgk-gpt@latest --dry-run
+npx dgk-gpt@latest --yes
+npx dgk-gpt@latest --skills-dir auto
+npx dgk-gpt@latest --skills-dir user
+npx dgk-gpt@latest --skills-dir legacy
+```
+
+## 이 패키지가 실제로 켜는 기본값
+
+프로필:
 
 - `dgk-fast`
 - `dgk-careful`
 - `cxt`
 
-It also enables the feature flags that the bundled skills actually need:
+기능 플래그:
 
 - `apply_patch_freeform`
 - `apps`
@@ -102,65 +221,20 @@ It also enables the feature flags that the bundled skills actually need:
 - `multi_agent`
 - `shell_tool`
 - `unified_exec`
-- `use_linux_sandbox_bwrap` on Linux/WSL
+- Linux/WSL에서는 `use_linux_sandbox_bwrap`
 
-And it installs these MCP server definitions:
+MCP 정의:
 
-- `context7` enabled by default
-- `serena` enabled by default
-- `chrome-devtools` installed but disabled by default
-- `jina` installed but disabled by default
+- `context7` 기본 활성화
+- `serena` 기본 활성화
+- `chrome-devtools` 기본 비활성화
+- `jina` 기본 비활성화
 
-`chrome-devtools` and `jina` are left disabled because they depend on local runtime state or secrets.
+`chrome-devtools`와 `jina`는 로컬 런타임 상태나 시크릿에 의존하므로 기본은 꺼 둡니다.
 
-## Existing Users
+## 유지보수 메모
 
-This installer is designed for people who already have a Codex setup.
-
-Behavior:
-
-- existing AGENTS content is preserved
-- existing config sections outside the managed targets are preserved
-- existing workflow skills in legacy `~/.codex/skills` keep using that root
-- files are backed up under `~/.codex/backups/dgk-gpt/<timestamp>/`
-
-## Platform Notes
-
-- macOS and Linux are straightforward with `npm i -g @openai/codex`.
-- Windows support for Codex CLI is still experimental. For the best Windows experience, OpenAI recommends working in WSL.
-- `cxt` is a Bash/tmux helper, so it is most useful on macOS, Linux, WSL, or Git Bash setups.
-
-## After Install
-
-1. Restart Codex so it reloads skills and config.
-2. If Codex CLI is not installed yet, run:
-
-```bash
-bash ~/.local/bin/setup-codex.sh
-```
-
-3. If you want `/rr` and `/rrr`, install the review CLI:
-
-```bash
-npm install -g glm-review
-```
-
-4. If you want Jina MCP, export `JINA_API_KEY` and set `enabled = true` for `[mcp_servers.jina]`.
-
-## Why This Exists
-
-`dgk-claude` packaged my Claude Code operating model.
-
-`dgk-gpt` is the Codex version of the same idea:
-
-- consistent skill set
-- consistent AGENTS guidance
-- consistent profiles and MCP defaults
-- safe installer behavior for people who already have local state
-
-## Release Notes
-
-Useful local release checks:
+로컬 릴리즈 체크:
 
 ```bash
 npm test
@@ -168,7 +242,7 @@ npm run pack:dry-run
 npm run smoke:dry-run
 ```
 
-After bumping the package version, publish the next patch with:
+버전 올린 뒤 배포:
 
 ```bash
 npm publish
