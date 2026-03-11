@@ -160,6 +160,7 @@ npx dgk-gpt@latest --with-pix-devtools
 - `chrome`를 실행하면 `127.0.0.1:9333`용 Chrome remote debugging target이 뜸
 - `tauri-pix`를 실행하면 Pix Tauri app이 `127.0.0.1:9334`로 뜸
 - `/test`가 필요할 때 `chrome-devtools`, `tauri-devtools`를 자연스럽게 붙일 수 있음
+- `/test`나 DevTools 진단이 필요할 때는 먼저 포트를 확인하고, 이미 떠 있으면 재사용하고, 안 떠 있으면 `chrome` 또는 `tauri-pix`를 자동 실행하도록 유도됨
 
 전제:
 
