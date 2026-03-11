@@ -1,0 +1,137 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PROJECT_ROOT="${PIX_PROJECT_DIR:-${PROJECTS_DIR:-$HOME/ws}/pix}"
+PORT="${PIX_DEV_PORT:-3001}"
+FRONTEND_NAME="${PIX_FRONTEND_NAME:-Next.js}"
+DEV_COMMAND="${PIX_DEV_COMMAND:-pnpm dev:app}"
+TAURI_SUBDIR="apps/app"
+REMOTE_DEBUG_PORT="${TAURI_REMOTE_DEBUG_PORT:-9334}"
+APP_NAME="tauri-pix"
+DEV_PID=""
+
+run_windows_exe() {
+  local exe_path="$1"
+  shift
+
+  if [ -x /init ]; then
+    /init "$exe_path" "$@"
+    return $?
+  fi
+
+  "$exe_path" "$@"
+}
+
+cleanup() {
+  if [ -n "$DEV_PID" ]; then
+    kill "$DEV_PID" >/dev/null 2>&1 || true
+    echo "[$FRONTEND_NAME] Stopped"
+  fi
+}
+
+check_prereqs() {
+  local ok=1
+
+  if [ ! -d "$PROJECT_ROOT" ]; then
+    echo "[ERROR] $APP_NAME project not found: $PROJECT_ROOT"
+    ok=0
+  fi
+
+  if ! command -v powershell.exe >/dev/null 2>&1; then
+    echo "[ERROR] powershell.exe not found (WSL2 required)"
+    ok=0
+  fi
+
+  if command -v cmd.exe >/dev/null 2>&1; then
+    local win_profile=""
+    win_profile="$(run_windows_exe cmd.exe /C "echo %USERPROFILE%" 2>/dev/null | tr -d '\r')"
+    if [ -n "$win_profile" ]; then
+      local wslcfg=""
+      wslcfg="$(wslpath -u "$win_profile" 2>/dev/null)/.wslconfig"
+      if ! grep -q "networkingMode=mirrored" "$wslcfg" 2>/dev/null; then
+        echo "[ERROR] .wslconfig: networkingMode=mirrored 없음"
+        echo "  파일: $wslcfg"
+        echo "  $APP_NAME 는 mirrored networking 이 필요합니다."
+        echo "  해결: WSL mirrored networking 설정 후 wsl --shutdown 으로 재시작"
+        ok=0
+      fi
+    fi
+  fi
+
+  [ "$ok" -eq 1 ]
+}
+
+download_sidecars_if_needed() {
+  local tauri_dir="$PROJECT_ROOT/$TAURI_SUBDIR/src-tauri"
+  local win_target="x86_64-pc-windows-msvc"
+  local missing=0
+
+  for bin_name in yt-dlp ffmpeg ffprobe deno; do
+    if [ -z "$(find "$tauri_dir" -maxdepth 1 -name "${bin_name}-${win_target}*" -print -quit 2>/dev/null)" ]; then
+      missing=1
+      break
+    fi
+  done
+
+  if [ "$missing" -eq 1 ]; then
+    echo "[Binaries] Windows sidecar 바이너리 다운로드 중..."
+    node "$PROJECT_ROOT/$TAURI_SUBDIR/scripts/download-binaries.js" "$win_target"
+  fi
+}
+
+start_frontend_if_needed() {
+  if curl -s --connect-timeout 1 "http://127.0.0.1:$PORT" >/dev/null 2>&1; then
+    echo "[$FRONTEND_NAME] Already running on 127.0.0.1:$PORT"
+    return 0
+  fi
+
+  echo "[$FRONTEND_NAME] Starting on 127.0.0.1:$PORT ..."
+  local pnpm_script="${DEV_COMMAND#pnpm }"
+  pnpm --dir "$PROJECT_ROOT" "$pnpm_script" </dev/null >/dev/null 2>&1 &
+  DEV_PID=$!
+
+  for _ in $(seq 1 30); do
+    if curl -s --connect-timeout 1 "http://127.0.0.1:$PORT" >/dev/null 2>&1; then
+      echo "[$FRONTEND_NAME] Ready (pid $DEV_PID)"
+      return 0
+    fi
+    sleep 1
+  done
+
+  echo "[$FRONTEND_NAME] Failed to start within 30s"
+  cleanup
+  exit 1
+}
+
+if ! check_prereqs; then
+  exit 1
+fi
+
+if curl -s --connect-timeout 1 "http://127.0.0.1:$REMOTE_DEBUG_PORT/json/version" >/dev/null 2>&1; then
+  echo "[ERROR] CDP port $REMOTE_DEBUG_PORT already in use"
+  echo "  해당 포트를 사용하는 기존 디버그 앱을 종료하거나"
+  echo "  TAURI_REMOTE_DEBUG_PORT=<other-port> $APP_NAME 로 실행하세요."
+  exit 1
+fi
+
+trap cleanup EXIT INT TERM
+
+download_sidecars_if_needed
+start_frontend_if_needed
+
+PS1_PATH="$HOME/.config/powershell/tauri-dev.ps1"
+if [ ! -f "$PS1_PATH" ]; then
+  echo "[ERROR] Missing PowerShell launcher: $PS1_PATH"
+  exit 1
+fi
+
+WIN_PS1="$(wslpath -w "$PS1_PATH")"
+WIN_PROJECT_DIR="$(wslpath -w "$PROJECT_ROOT/$TAURI_SUBDIR")"
+
+run_windows_exe powershell.exe -ExecutionPolicy Bypass -File "$WIN_PS1" \
+  -ProjectDir "$WIN_PROJECT_DIR" \
+  -ProjectName "pix" \
+  -CacheName "pix-target" \
+  -Port "$PORT" \
+  -FrontendName "$FRONTEND_NAME" \
+  -RemoteDebugPort "$REMOTE_DEBUG_PORT"

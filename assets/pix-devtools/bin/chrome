@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PORT="${CHROME_REMOTE_DEBUG_PORT:-9333}"
+CHROME_PATH="${CHROME_PATH:-/mnt/c/Program Files/Google/Chrome/Application/chrome.exe}"
+USER_DATA_DIR="${CHROME_USER_DATA_DIR:-C:\\temp\\chrome-debug}"
+
+run_windows_exe() {
+  local exe_path="$1"
+  shift
+
+  if [ -x /init ]; then
+    /init "$exe_path" "$@"
+    return $?
+  fi
+
+  "$exe_path" "$@"
+}
+
+if [ ! -f "$CHROME_PATH" ]; then
+  echo "Chrome not found at: $CHROME_PATH" >&2
+  exit 1
+fi
+
+if curl -s --connect-timeout 2 "http://127.0.0.1:$PORT/json/version" >/dev/null 2>&1; then
+  echo "Debug Chrome already running on port $PORT"
+  exit 0
+fi
+
+run_windows_exe "$CHROME_PATH" \
+  --remote-debugging-port="$PORT" \
+  '--remote-allow-origins=*' \
+  --user-data-dir="$USER_DATA_DIR" \
+  >/dev/null 2>&1 &
+disown
+
+for _ in $(seq 1 20); do
+  if curl -s --connect-timeout 1 "http://127.0.0.1:$PORT/json/version" >/dev/null 2>&1; then
+    echo "Debug Chrome ready on port $PORT"
+    exit 0
+  fi
+  sleep 0.5
+done
+
+echo "Warning: Chrome started but port $PORT not responding yet"

@@ -54,6 +54,12 @@ npm install -g dgk-gpt
 npx dgk-gpt@latest --dry-run
 ```
 
+Pix 팀용 DevTools layer까지 같이 설치:
+
+```bash
+npx dgk-gpt@latest --with-pix-devtools
+```
+
 이미 예전 방식으로 `~/.codex/skills`를 쓰고 있다면 강제로 legacy 모드 지정:
 
 ```bash
@@ -118,6 +124,11 @@ npm install -g glm-review
 - `profiles.dgk-fast`, `profiles.dgk-careful`, `profiles.cxt`
 - `mcp_servers.context7`, `mcp_servers.serena`, `mcp_servers.chrome-devtools`, `mcp_servers.jina`
 
+`--with-pix-devtools`를 함께 쓰면 여기에 아래도 추가됩니다.
+
+- `mcp_servers.tauri-devtools`
+- Pix DevTools용 AGENTS 안내 블록
+
 ### 헬퍼 스크립트
 
 같이 설치되는 스크립트:
@@ -126,6 +137,42 @@ npm install -g glm-review
 - `~/.local/bin/setup-codex.sh`
 
 `codex-tmux.sh`는 `cxt` 류 tmux 워크플로우용 헬퍼입니다.
+
+## Pix DevTools 옵션
+
+Pix 팀원이 WSL에서 브라우저와 Tauri desktop까지 Codex로 바로 검증하고 싶다면 이 옵션을 같이 쓰면 됩니다.
+
+```bash
+npx dgk-gpt@latest --with-pix-devtools
+```
+
+이 옵션이 추가로 설치하는 것:
+
+- `~/.local/bin/chrome`
+- `~/.local/bin/tauri-pix`
+- `~/.config/powershell/tauri-dev.ps1`
+- `mcp_servers.tauri-devtools`
+- `chrome-devtools` 활성화
+- Pix DevTools용 AGENTS 안내
+
+의도는 이겁니다.
+
+- `chrome`를 실행하면 `127.0.0.1:9333`용 Chrome remote debugging target이 뜸
+- `tauri-pix`를 실행하면 Pix Tauri app이 `127.0.0.1:9334`로 뜸
+- `/test`가 필요할 때 `chrome-devtools`, `tauri-devtools`를 자연스럽게 붙일 수 있음
+
+전제:
+
+- WSL2 + Windows 조합
+- `powershell.exe` 접근 가능
+- mirrored networking 사용
+- Pix 저장소가 기본 경로 `~/ws/pix`에 있거나 `PIX_PROJECT_DIR`로 override 가능
+
+중요:
+
+- 이 옵션은 Pix 팀용 WSL add-on입니다.
+- 개인 chezmoi 전체를 공유하는 대신, 팀에 필요한 portable subset만 떼어낸 표면입니다.
+- 이후 업데이트 때도 기존 `chrome` / `tauri-pix` 설치 흔적을 감지해서 계속 유지합니다.
 
 ## 왜 이걸 쓰는가
 
@@ -190,6 +237,7 @@ npm install -g glm-review
 
 4. Jina MCP를 쓸 사람은 `JINA_API_KEY`를 export하고 `[mcp_servers.jina]`를 `enabled = true`로 켭니다.
 5. `cxt` 같은 tmux 기반 흐름을 쓸 사람은 `tmux`가 설치되어 있어야 합니다.
+6. Pix desktop까지 Codex에서 검사할 사람은 필요할 때 `chrome`, `tauri-pix`를 먼저 띄웁니다.
 
 ## 옵션
 
@@ -198,6 +246,7 @@ npm install -g glm-review
 ```bash
 npx dgk-gpt@latest --dry-run
 npx dgk-gpt@latest --yes
+npx dgk-gpt@latest --with-pix-devtools
 npx dgk-gpt@latest --skills-dir auto
 npx dgk-gpt@latest --skills-dir user
 npx dgk-gpt@latest --skills-dir legacy
@@ -230,6 +279,10 @@ MCP 정의:
 - `jina` 기본 비활성화
 
 `chrome-devtools`와 `jina`는 로컬 런타임 상태나 시크릿에 의존하므로 기본은 꺼 둡니다.
+
+예외:
+
+- `--with-pix-devtools`를 쓰면 `chrome-devtools`와 `tauri-devtools`는 팀용 WSL Pix 디버깅 표면으로 활성화됩니다.
 
 ## 유지보수 메모
 

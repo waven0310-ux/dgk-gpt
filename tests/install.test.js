@@ -26,6 +26,7 @@ test("cli help prints usage", () => {
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /Usage:/);
   assert.match(result.stdout, /--skills-dir <mode>/);
+  assert.match(result.stdout, /--with-pix-devtools/);
 });
 
 test("installer defaults workflow skills to ~/.agents/skills for fresh installs", () => {
@@ -195,6 +196,55 @@ test("installer removes deprecated browser skills and replaces them with test", 
   assert.ok(!fs.existsSync(path.join(userSkillsDir, "bt")));
   assert.ok(!fs.existsSync(path.join(userSkillsDir, "playwright-interactive")));
   assert.ok(fs.existsSync(path.join(userSkillsDir, "test", "SKILL.md")));
+});
+
+test("installer can add optional pix devtools helpers and MCP config", () => {
+  const homeDir = fs.mkdtempSync(path.join(os.tmpdir(), "dgk-gpt-pix-devtools-"));
+  const result = runNode(path.join(repoRoot, "bin", "dgk-gpt.js"), ["--yes", "--with-pix-devtools"], {
+    env: {
+      HOME: homeDir,
+      WSL_DISTRO_NAME: "Ubuntu",
+    },
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.ok(fs.existsSync(path.join(homeDir, ".local", "bin", "chrome")));
+  assert.ok(fs.existsSync(path.join(homeDir, ".local", "bin", "tauri-pix")));
+  assert.ok(fs.existsSync(path.join(homeDir, ".config", "powershell", "tauri-dev.ps1")));
+
+  const agentsContent = fs.readFileSync(path.join(homeDir, ".codex", "AGENTS.md"), "utf8");
+  assert.match(agentsContent, /`chrome` owns `127\.0\.0\.1:9333`/);
+  assert.match(agentsContent, /`tauri-pix` owns `127\.0\.0\.1:9334`/);
+
+  const configContent = fs.readFileSync(path.join(homeDir, ".codex", "config.toml"), "utf8");
+  assert.match(configContent, /\[mcp_servers\.chrome-devtools\]/);
+  assert.match(configContent, /\[mcp_servers\.tauri-devtools\]/);
+  assert.match(configContent, /"--browser-url=http:\/\/127\.0\.0\.1:9334"/);
+  assert.match(configContent, /enabled = true/);
+});
+
+test("installer preserves pix devtools addon on later reruns without the flag", () => {
+  const homeDir = fs.mkdtempSync(path.join(os.tmpdir(), "dgk-gpt-pix-devtools-rerun-"));
+
+  let result = runNode(path.join(repoRoot, "bin", "dgk-gpt.js"), ["--yes", "--with-pix-devtools"], {
+    env: {
+      HOME: homeDir,
+      WSL_DISTRO_NAME: "Ubuntu",
+    },
+  });
+  assert.equal(result.status, 0, result.stderr);
+
+  result = runNode(path.join(repoRoot, "bin", "dgk-gpt.js"), ["--yes"], {
+    env: {
+      HOME: homeDir,
+      WSL_DISTRO_NAME: "Ubuntu",
+    },
+  });
+  assert.equal(result.status, 0, result.stderr);
+
+  const configContent = fs.readFileSync(path.join(homeDir, ".codex", "config.toml"), "utf8");
+  assert.match(configContent, /\[mcp_servers\.tauri-devtools\]/);
+  assert.match(configContent, /\[mcp_servers\.chrome-devtools\][\s\S]*enabled = true/);
 });
 
 test("cxt helper fails clearly when tmux is unavailable", () => {

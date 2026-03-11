@@ -22,7 +22,9 @@ Use this as a verification-and-fix mode after implementation or during bug hunts
 - widen scope only after the narrow failing checks pass
 4. If the surface is interactive, verify the real runtime too.
 - web: run relevant e2e flows or drive the app directly
+- if a `chrome` launcher exists and browser DevTools inspection is needed, start it first so `127.0.0.1:9333` is up before using `chrome-devtools`
 - browser diagnosis: use `chrome-devtools` for console, network, DOM, accessibility, or performance inspection
+- if a `tauri-pix` launcher exists and Pix desktop verification is needed, start it first so `127.0.0.1:9334` is up before using `tauri-devtools`
 - Tauri desktop: use `tauri-devtools` and the fixed Tauri debug path when diagnosis is needed
 - direct browser control: use the repo's Playwright setup or a persistent `js_repl` Playwright session when targeted manual proof is still needed
 5. On failure, fix and rerun.
