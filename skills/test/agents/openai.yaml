@@ -1,0 +1,4 @@
+interface:
+  display_name: "test"
+  short_description: "Persistent test and verification loop"
+  default_prompt: "Use persistent verification mode: run the relevant existing automated tests first, then browser or desktop runtime checks and diagnosis as needed, repeating fix and rerun loops until the requested behavior is verified or a real blocker remains."

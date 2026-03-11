@@ -36,6 +36,7 @@ test("installer defaults workflow skills to ~/.agents/skills for fresh installs"
 
   assert.equal(result.status, 0, result.stderr);
   assert.ok(fs.existsSync(path.join(homeDir, ".agents", "skills", "fd", "SKILL.md")));
+  assert.ok(fs.existsSync(path.join(homeDir, ".agents", "skills", "test", "SKILL.md")));
   assert.ok(fs.existsSync(path.join(homeDir, ".agents", "skills", "rr", "SKILL.md")));
   assert.ok(fs.existsSync(path.join(homeDir, ".codex", "scripts", "codex-tmux.sh")));
   assert.ok(fs.existsSync(path.join(homeDir, ".local", "bin", "setup-codex.sh")));
@@ -176,6 +177,24 @@ test("installer removes stale files from managed skill directories on update", (
 
   assert.equal(result.status, 0, result.stderr);
   assert.ok(!fs.existsSync(path.join(skillDir, "EXTRA.txt")));
+});
+
+test("installer removes deprecated browser skills and replaces them with test", () => {
+  const homeDir = fs.mkdtempSync(path.join(os.tmpdir(), "dgk-gpt-deprecated-skill-"));
+  const userSkillsDir = path.join(homeDir, ".agents", "skills");
+  fs.mkdirSync(path.join(userSkillsDir, "bt"), { recursive: true });
+  fs.mkdirSync(path.join(userSkillsDir, "playwright-interactive"), { recursive: true });
+  fs.writeFileSync(path.join(userSkillsDir, "bt", "SKILL.md"), "old bt\n");
+  fs.writeFileSync(path.join(userSkillsDir, "playwright-interactive", "SKILL.md"), "old playwright\n");
+
+  const result = runNode(path.join(repoRoot, "bin", "dgk-gpt.js"), ["--yes", "--skills-dir", "user"], {
+    env: { HOME: homeDir },
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.ok(!fs.existsSync(path.join(userSkillsDir, "bt")));
+  assert.ok(!fs.existsSync(path.join(userSkillsDir, "playwright-interactive")));
+  assert.ok(fs.existsSync(path.join(userSkillsDir, "test", "SKILL.md")));
 });
 
 test("cxt helper fails clearly when tmux is unavailable", () => {

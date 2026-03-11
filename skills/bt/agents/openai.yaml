@@ -1,4 +1,0 @@
-interface:
-  display_name: "bt"
-  short_description: "Browser QA wrapper for Codex"
-  default_prompt: "Use browser QA mode after implementation: prefer $playwright-interactive for functional and visual verification, and use chrome-devtools only when diagnosis needs console, network, DOM, accessibility, or performance inspection."
