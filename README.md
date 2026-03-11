@@ -26,13 +26,13 @@ npm install -g dgk-gpt
 For a preview without changing files:
 
 ```bash
-npx dgk-gpt --dry-run
+npx dgk-gpt@latest --dry-run
 ```
 
 If you already keep custom workflow skills under the older legacy path, force that mode explicitly:
 
 ```bash
-npx dgk-gpt --skills-dir legacy
+npx dgk-gpt@latest --skills-dir legacy
 ```
 
 ## What It Installs
@@ -168,7 +168,7 @@ npm run pack:dry-run
 npm run smoke:dry-run
 ```
 
-After bumping the package version, publish with:
+After bumping the package version, publish the next patch with:
 
 ```bash
 npm publish

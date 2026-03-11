@@ -1,6 +1,6 @@
 {
   "name": "dgk-gpt",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Codex CLI skills, AGENTS rules, MCP defaults, and safe installer for reusable team setup",
   "bin": {
     "dgk-gpt": "bin/dgk-gpt.js"

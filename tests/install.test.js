@@ -21,6 +21,13 @@ function runNode(scriptPath, args = [], options = {}) {
   });
 }
 
+test("cli help prints usage", () => {
+  const result = runNode(path.join(repoRoot, "bin", "dgk-gpt.js"), ["--help"]);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Usage:/);
+  assert.match(result.stdout, /--skills-dir <mode>/);
+});
+
 test("installer defaults workflow skills to ~/.agents/skills for fresh installs", () => {
   const homeDir = fs.mkdtempSync(path.join(os.tmpdir(), "dgk-gpt-home-"));
   const result = runNode(path.join(repoRoot, "bin", "dgk-gpt.js"), ["--yes"], {
