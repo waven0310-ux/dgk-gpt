@@ -128,7 +128,7 @@ fi
 WIN_PS1="$(wslpath -w "$PS1_PATH")"
 WIN_PROJECT_DIR="$(wslpath -w "$PROJECT_ROOT/$TAURI_SUBDIR")"
 
-run_windows_exe powershell.exe -ExecutionPolicy Bypass -File "$WIN_PS1" \
+powershell.exe -ExecutionPolicy Bypass -File "$WIN_PS1" \
   -ProjectDir "$WIN_PROJECT_DIR" \
   -ProjectName "pix" \
   -CacheName "pix-target" \

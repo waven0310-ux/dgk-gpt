@@ -23,7 +23,7 @@ Codex 기본도 강합니다.
 그냥 아래 문구 그대로 보내도 됩니다.
 
 ```text
-Codex 쓰는 사람은 아래 한 줄만 실행하면 됩니다.
+Codex가 이미 설치된 사람은 아래 한 줄만 실행하면 핵심 셋업이 끝납니다.
 
 npx dgk-gpt@latest
 
@@ -35,6 +35,21 @@ npx dgk-gpt@latest --dry-run
 ```
 
 ## 설치
+
+기존 Codex 사용자 원클릭:
+
+```bash
+npx dgk-gpt@latest
+```
+
+이 한 번으로 바로 맞춰지는 범위:
+
+- 워크플로우 스킬 설치/업데이트
+- `AGENTS.md` managed block 병합
+- `config.toml` managed 섹션 병합
+- `context7` 활성화
+- `serena`는 `uvx`가 있으면 자동 활성화, 없으면 자동 비활성화
+- `tmux`가 있으면 `cxt` helper까지 바로 사용 가능
 
 가장 간단한 방법:
 
@@ -138,6 +153,13 @@ npm install -g glm-review
 
 `codex-tmux.sh`는 `cxt` 류 tmux 워크플로우용 헬퍼입니다.
 
+`setup-codex.sh`는 아래까지 같이 점검합니다.
+
+- Codex CLI 설치/로그인 상태
+- `uvx` 유무에 따른 Serena MCP 준비 상태
+- `tmux` 설치 여부
+- 지원되는 패키지 매니저가 있으면 `tmux` 자동 설치
+
 ## Pix DevTools 옵션
 
 Pix 팀원이 WSL에서 브라우저와 Tauri desktop까지 Codex로 바로 검증하고 싶다면 이 옵션을 같이 쓰면 됩니다.
@@ -240,6 +262,12 @@ npm install -g glm-review
 5. `cxt` 같은 tmux 기반 흐름을 쓸 사람은 `tmux`가 설치되어 있어야 합니다.
 6. Pix desktop까지 Codex에서 검사할 사람은 필요할 때 `chrome`, `tauri-pix`를 먼저 띄웁니다.
 
+참고:
+- `uvx`가 있으면 `serena` MCP는 자동으로 활성화됩니다.
+- `uvx`가 없으면 `serena` MCP는 자동으로 비활성화되어, 기존 Codex 사용자가 설치 직후 에러 없이 시작할 수 있습니다.
+- 나중에 `uv`/`uvx`를 설치한 뒤 `npx dgk-gpt@latest`를 한 번 더 실행하면 `serena`가 켜집니다.
+- `tmux`가 없으면 `bash ~/.local/bin/setup-codex.sh --install-tmux --yes`로 자동 설치를 시도할 수 있습니다.
+
 ## 옵션
 
 자주 쓰는 옵션:
@@ -275,11 +303,11 @@ npx dgk-gpt@latest --skills-dir legacy
 MCP 정의:
 
 - `context7` 기본 활성화
-- `serena` 기본 활성화
+- `serena`는 `uvx`가 있으면 기본 활성화, 없으면 기본 비활성화
 - `chrome-devtools` 기본 비활성화
 - `jina` 기본 비활성화
 
-`chrome-devtools`와 `jina`는 로컬 런타임 상태나 시크릿에 의존하므로 기본은 꺼 둡니다.
+`serena`, `chrome-devtools`, `jina`는 로컬 런타임 상태나 시크릿에 의존할 수 있으므로, `dgk-gpt`는 현재 머신에서 바로 쓸 수 있는 표면만 기본 활성화합니다.
 
 예외:
 

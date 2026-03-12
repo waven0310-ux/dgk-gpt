@@ -9,8 +9,25 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..");
 
+function writeExecutable(targetPath, content) {
+  fs.writeFileSync(targetPath, content);
+  fs.chmodSync(targetPath, 0o755);
+}
+
 function runNode(scriptPath, args = [], options = {}) {
   return spawnSync(process.execPath, [scriptPath, ...args], {
+    cwd: options.cwd ?? repoRoot,
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      ...options.env,
+    },
+    input: options.input,
+  });
+}
+
+function runSetupCodex(args = [], options = {}) {
+  return spawnSync("/bin/bash", [path.join(repoRoot, "assets", "bin", "setup-codex.sh"), ...args], {
     cwd: options.cwd ?? repoRoot,
     encoding: "utf8",
     env: {
@@ -121,6 +138,69 @@ test("installer merges AGENTS.md and config.toml without dropping user settings"
   assert.match(configContent, /js_repl = true/);
 });
 
+test("installer disables serena MCP when uvx is unavailable", () => {
+  const homeDir = fs.mkdtempSync(path.join(os.tmpdir(), "dgk-gpt-no-uvx-"));
+  const emptyBinDir = fs.mkdtempSync(path.join(os.tmpdir(), "dgk-gpt-empty-bin-"));
+
+  const result = runNode(path.join(repoRoot, "bin", "dgk-gpt.js"), ["--yes"], {
+    env: {
+      HOME: homeDir,
+      PATH: emptyBinDir,
+    },
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /serena MCP: disabled \(uvx not found\)/);
+
+  const configContent = fs.readFileSync(path.join(homeDir, ".codex", "config.toml"), "utf8");
+  assert.match(
+    configContent,
+    /\[mcp_servers\.serena\][\s\S]*?command = "uvx"[\s\S]*?enabled = false/,
+  );
+});
+
+test("installer enables serena MCP when uvx is available", () => {
+  const homeDir = fs.mkdtempSync(path.join(os.tmpdir(), "dgk-gpt-with-uvx-"));
+  const binDir = fs.mkdtempSync(path.join(os.tmpdir(), "dgk-gpt-bin-"));
+  const uvxPath = path.join(binDir, "uvx");
+  fs.writeFileSync(uvxPath, "#!/bin/sh\nexit 0\n");
+  fs.chmodSync(uvxPath, 0o755);
+
+  const result = runNode(path.join(repoRoot, "bin", "dgk-gpt.js"), ["--yes"], {
+    env: {
+      HOME: homeDir,
+      PATH: binDir,
+    },
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /serena MCP: enabled \(uvx detected\)/);
+
+  const configContent = fs.readFileSync(path.join(homeDir, ".codex", "config.toml"), "utf8");
+  assert.match(
+    configContent,
+    /\[mcp_servers\.serena\][\s\S]*?command = "uvx"[\s\S]*?enabled = true/,
+  );
+});
+
+test("installer next steps mention tmux helper when tmux is unavailable", () => {
+  const homeDir = fs.mkdtempSync(path.join(os.tmpdir(), "dgk-gpt-no-tmux-"));
+  const binDir = fs.mkdtempSync(path.join(os.tmpdir(), "dgk-gpt-bin-"));
+  const uvxPath = path.join(binDir, "uvx");
+  writeExecutable(uvxPath, "#!/bin/sh\nexit 0\n");
+
+  const result = runNode(path.join(repoRoot, "bin", "dgk-gpt.js"), ["--yes"], {
+    env: {
+      HOME: homeDir,
+      PATH: binDir,
+    },
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /tmux helper: tmux missing/);
+  assert.match(result.stdout, /setup-codex\.sh --install-tmux --yes/);
+});
+
 test("installer merges tables with inline comments instead of duplicating them", () => {
   const homeDir = fs.mkdtempSync(path.join(os.tmpdir(), "dgk-gpt-commented-"));
   const codexDir = path.join(homeDir, ".codex");
@@ -211,6 +291,9 @@ test("installer can add optional pix devtools helpers and MCP config", () => {
   assert.ok(fs.existsSync(path.join(homeDir, ".local", "bin", "chrome")));
   assert.ok(fs.existsSync(path.join(homeDir, ".local", "bin", "tauri-pix")));
   assert.ok(fs.existsSync(path.join(homeDir, ".config", "powershell", "tauri-dev.ps1")));
+  const tauriPixScript = fs.readFileSync(path.join(homeDir, ".local", "bin", "tauri-pix"), "utf8");
+  assert.match(tauriPixScript, /powershell\.exe -ExecutionPolicy Bypass -File/);
+  assert.doesNotMatch(tauriPixScript, /run_windows_exe powershell\.exe -ExecutionPolicy Bypass -File/);
 
   const agentsContent = fs.readFileSync(path.join(homeDir, ".codex", "AGENTS.md"), "utf8");
   assert.match(agentsContent, /`chrome` owns `127\.0\.0\.1:9333`/);
@@ -245,6 +328,67 @@ test("installer preserves pix devtools addon on later reruns without the flag", 
   const configContent = fs.readFileSync(path.join(homeDir, ".codex", "config.toml"), "utf8");
   assert.match(configContent, /\[mcp_servers\.tauri-devtools\]/);
   assert.match(configContent, /\[mcp_servers\.chrome-devtools\][\s\S]*enabled = true/);
+});
+
+test("setup-codex suggests tmux auto-install when tmux is missing", () => {
+  const homeDir = fs.mkdtempSync(path.join(os.tmpdir(), "dgk-gpt-setup-home-"));
+  const binDir = fs.mkdtempSync(path.join(os.tmpdir(), "dgk-gpt-setup-bin-"));
+  writeExecutable(path.join(binDir, "npm"), "#!/bin/sh\nexit 0\n");
+  writeExecutable(
+    path.join(binDir, "codex"),
+    "#!/bin/sh\nif [ \"$1\" = \"--version\" ]; then echo 0.0.0; exit 0; fi\nif [ \"$1\" = \"login\" ] && [ \"$2\" = \"status\" ]; then exit 0; fi\nexit 0\n",
+  );
+  writeExecutable(path.join(binDir, "apt-get"), "#!/bin/sh\nexit 0\n");
+
+  const result = runSetupCodex([], {
+    env: {
+      HOME: homeDir,
+      PATH: binDir,
+    },
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /tmux auto-install available: bash ~\/\.local\/bin\/setup-codex\.sh --install-tmux --yes/);
+});
+
+test("setup-codex can auto-install tmux with a supported package manager", () => {
+  const homeDir = fs.mkdtempSync(path.join(os.tmpdir(), "dgk-gpt-setup-home-"));
+  const binDir = fs.mkdtempSync(path.join(os.tmpdir(), "dgk-gpt-setup-bin-"));
+  writeExecutable(path.join(binDir, "npm"), "#!/bin/sh\nexit 0\n");
+  writeExecutable(
+    path.join(binDir, "codex"),
+    "#!/bin/sh\nif [ \"$1\" = \"--version\" ]; then echo 0.0.0; exit 0; fi\nif [ \"$1\" = \"login\" ] && [ \"$2\" = \"status\" ]; then exit 0; fi\nexit 0\n",
+  );
+  writeExecutable(path.join(binDir, "sudo"), "#!/bin/sh\nexec \"$@\"\n");
+  writeExecutable(path.join(binDir, "id"), "#!/bin/sh\nif [ \"$1\" = \"-u\" ]; then echo 1000; exit 0; fi\nexit 0\n");
+  writeExecutable(
+    path.join(binDir, "apt-get"),
+    `#!/bin/sh
+if [ "$1" = "update" ]; then
+  exit 0
+fi
+if [ "$1" = "install" ] && [ "$2" = "-y" ] && [ "$3" = "tmux" ]; then
+  cat > "${path.join(binDir, "tmux")}" <<'EOF'
+#!/bin/sh
+exit 0
+EOF
+  chmod +x "${path.join(binDir, "tmux")}"
+  exit 0
+fi
+exit 1
+`,
+  );
+
+  const result = runSetupCodex(["--install-tmux", "--yes"], {
+    env: {
+      HOME: homeDir,
+      PATH: binDir,
+    },
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /tmux installed/);
+  assert.ok(fs.existsSync(path.join(binDir, "tmux")));
 });
 
 test("cxt helper fails clearly when tmux is unavailable", () => {
