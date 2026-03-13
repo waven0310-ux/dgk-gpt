@@ -149,9 +149,10 @@ npm install -g glm-review
 같이 설치되는 스크립트:
 
 - `~/.codex/scripts/codex-tmux.sh`
+- `~/.codex/scripts/codex-statusline.py`
 - `~/.local/bin/setup-codex.sh`
 
-`codex-tmux.sh`는 `cxt` 류 tmux 워크플로우용 헬퍼입니다.
+`codex-tmux.sh`는 `cxt` 류 tmux 워크플로우용 헬퍼이고, `codex-statusline.py`는 tmux window name에 최근 요청 요약을 반영하는 보조 스크립트입니다.
 
 `setup-codex.sh`는 아래까지 같이 점검합니다.
 

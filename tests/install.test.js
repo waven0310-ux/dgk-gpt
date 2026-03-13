@@ -57,6 +57,7 @@ test("installer defaults workflow skills to ~/.agents/skills for fresh installs"
   assert.ok(fs.existsSync(path.join(homeDir, ".agents", "skills", "test", "SKILL.md")));
   assert.ok(fs.existsSync(path.join(homeDir, ".agents", "skills", "rr", "SKILL.md")));
   assert.ok(fs.existsSync(path.join(homeDir, ".codex", "scripts", "codex-tmux.sh")));
+  assert.ok(fs.existsSync(path.join(homeDir, ".codex", "scripts", "codex-statusline.py")));
   assert.ok(fs.existsSync(path.join(homeDir, ".local", "bin", "setup-codex.sh")));
 });
 

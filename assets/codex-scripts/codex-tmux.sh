@@ -12,6 +12,7 @@ MODE_LABEL=""
 CXT_FINISH_PROMPT="/cp"
 CXT_INSTALL_NOTE=""
 LOGIN_SHELL=""
+CODEX_STATUSLINE_HELPER="$HOME/.codex/scripts/codex-statusline.py"
 
 export PATH="$HOME/.local/bin:$HOME/.local/share/fnm/aliases/default/bin:$HOME/.local/share/pnpm:$PATH"
 
@@ -151,11 +152,23 @@ print_banner() {
 }
 
 run_codex_and_recover_shell() {
+  local tmux_target="${1:-}"
+  local statusline_pid=0
   local codex_status=0
 
   set +e
+  if [[ -n "$tmux_target" && -x "$CODEX_STATUSLINE_HELPER" ]] && command -v python3 >/dev/null 2>&1; then
+    python3 "$CODEX_STATUSLINE_HELPER" --parent-pid "$$" --tmux-target "$tmux_target" >/dev/null 2>&1 &
+    statusline_pid=$!
+  fi
+
   "${CODEX_CMD[@]}"
   codex_status=$?
+
+  if [[ $statusline_pid -gt 0 ]]; then
+    kill "$statusline_pid" >/dev/null 2>&1 || true
+    wait "$statusline_pid" >/dev/null 2>&1 || true
+  fi
   set -e
 
   if [[ $codex_status -ne 0 && $codex_status -ne 130 ]]; then
@@ -169,9 +182,10 @@ bootstrap_project_dependencies "$PROJECT_DIR"
 LOGIN_SHELL=$(resolve_login_shell)
 
 if [ -n "${TMUX:-}" ]; then
+  TMUX_TARGET=$(tmux display-message -p '#S:#I' 2>/dev/null || true)
   print_banner
   cd "$PROJECT_DIR"
-  run_codex_and_recover_shell
+  run_codex_and_recover_shell "$TMUX_TARGET"
 fi
 
 SESSION_NAME="${SESSION_BASE}"
@@ -194,7 +208,11 @@ if [[ -n "${CXT_INSTALL_NOTE:-}" ]]; then
   TMUX_BOOTSTRAP+="printf '[cxt] deps: %s\\n' $(printf '%q' "$CXT_INSTALL_NOTE")"$'\n'
 fi
 TMUX_BOOTSTRAP+="set +e"$'\n'
+TMUX_BOOTSTRAP+="if [ -x $(printf '%q' "$CODEX_STATUSLINE_HELPER") ] && command -v python3 >/dev/null 2>&1; then python3 $(printf '%q' "$CODEX_STATUSLINE_HELPER") --parent-pid \"\$\$\" --tmux-target $(printf '%q' "${SESSION_NAME}:0") >/dev/null 2>&1 & codex_statusline_pid=\$!; fi"$'\n'
 TMUX_BOOTSTRAP+="$(printf '%q ' "${CODEX_CMD[@]}")"$'\n'
+TMUX_BOOTSTRAP+="codex_status=$?"$'\n'
+TMUX_BOOTSTRAP+="if [ -n \"\${codex_statusline_pid:-}\" ]; then kill \"\$codex_statusline_pid\" >/dev/null 2>&1 || true; wait \"\$codex_statusline_pid\" >/dev/null 2>&1 || true; fi"$'\n'
+TMUX_BOOTSTRAP+="if [ \"\$codex_status\" -ne 0 ] && [ \"\$codex_status\" -ne 130 ]; then printf '[cxt] codex exited with status %s; reopening %s\\n' \"\$codex_status\" $(printf '%q' "$LOGIN_SHELL"); fi"$'\n'
 TMUX_BOOTSTRAP+="exec $(printf '%q' "$LOGIN_SHELL") -il"$'\n'
 
 tmux new-session -s "$SESSION_NAME" -c "$PROJECT_DIR" \
